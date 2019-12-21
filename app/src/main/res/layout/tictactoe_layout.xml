@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".MainActivity"
+    >
+<LinearLayout
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:layout_centerInParent="true"
+    android:orientation="vertical">
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/box0"
+            android:layout_width="50dp"
+            android:layout_height="50dp"
+            android:background="@drawable/box_background"
+            android:text=""
+            android:layout_centerInParent="true">
+        </Button>
+
+        <Button
+            android:id="@+id/box1"
+            android:layout_width="50dp"
+            android:layout_height="50dp"
+            android:background="@drawable/box_background"
+            android:text=" "
+            android:layout_centerInParent="true">
+        </Button>
+
+        <Button
+            android:id="@+id/box2"
+            android:layout_width="50dp"
+            android:layout_height="50dp"
+            android:background="@drawable/box_background"
+
+            android:text=" "
+            android:layout_centerInParent="true">
+        </Button>
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/box3"
+            android:layout_width="50dp"
+            android:layout_height="50dp"
+            android:background="@drawable/box_background"
+            android:text=" "
+            android:layout_centerInParent="true">
+        </Button>
+
+        <Button
+            android:id="@+id/box4"
+            android:layout_width="50dp"
+            android:layout_height="50dp"
+            android:background="@drawable/box_background"
+
+            android:text=" "
+            android:layout_centerInParent="true">
+        </Button>
+
+        <Button
+            android:id="@+id/box5"
+            android:layout_width="50dp"
+            android:layout_height="50dp"
+            android:background="@drawable/box_background"
+
+            android:text=" "
+            android:layout_centerInParent="true">
+        </Button>
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/box6"
+            android:layout_width="50dp"
+            android:layout_height="50dp"
+            android:background="@drawable/box_background"
+
+            android:text=" "
+            android:layout_centerInParent="true">
+        </Button>
+
+        <Button
+            android:id="@+id/box7"
+            android:layout_width="50dp"
+            android:layout_height="50dp"
+            android:background="@drawable/box_background"
+
+            android:text=" "
+            android:layout_centerInParent="true">
+        </Button>
+
+        <Button
+            android:id="@+id/box8"
+            android:layout_width="50dp"
+            android:layout_height="50dp"
+            android:background="@drawable/box_background"
+
+            android:text=" "
+            android:layout_centerInParent="true">
+        </Button>
+    </LinearLayout>
+
+</LinearLayout>
+
+
+
+</RelativeLayout>
