@@ -8,6 +8,7 @@ import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
+import android.provider.ContactsContract;
 import android.view.LayoutInflater;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -21,6 +22,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.Toolbar;
 
+import com.google.firebase.database.ChildEventListener;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
@@ -43,7 +45,7 @@ public class MainActivity extends AppCompatActivity {
     private static User currentUser;
 
     private UserDB userDatabase;
-
+    private MatchDB matchmakingDatabase;
 
     private static ArrayList<User> activeUsersList;
     private static ArrayAdapter<User> activeUserListAdapter;
@@ -63,6 +65,7 @@ public class MainActivity extends AppCompatActivity {
 
         //
         userDatabase = new UserDB(firebaseDatabase);
+        matchmakingDatabase = new MatchDB(firebaseDatabase);
 
         initializeDataBranches();
 
@@ -79,7 +82,7 @@ public class MainActivity extends AppCompatActivity {
                 userDatabase.setUserActive(currentUser);
             }
         });
-        userDatabase.addUser(userName,currentUser, newT);
+        userDatabase.addUser(userName, currentUser, newT);
 
 
         activeUsersList = new ArrayList<>();
@@ -87,116 +90,58 @@ public class MainActivity extends AppCompatActivity {
         tictactoeB.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if(v.getId() == R.id.run_sim) {
+                if (v.getId() == R.id.run_sim) {
                     activeUsersList = new ArrayList<>();
-                    new Thread(new Runnable() {
+                    Thread newT = new Thread(new Runnable() {
                         @Override
                         public void run() {
-                            findAvailablePlayers();
+                            activeUserListAdapter.notifyDataSetChanged();
                         }
-                    }).start();
+                    });
+                    userDatabase.getActiveUsers(activeUsersList, newT);
 
                     showDialog(activeUsersList);
                 }
             }
         });
 
-        //final ValuePair vp = new ValuePair();
-        /*final ArrayList<User> users = new ArrayList<>();
-        Thread newT = new Thread(new Runnable() {
+
+
+        //--------------------------------------
+        final Runner onRequestReceived = new Runner() {
             @Override
-            public void run() {
-                System.out.println("-----------------------------------------------------> "+users);
-            }
-        });*/
-        //userDatabase.getNextuserID(vp,newT).getInteger();
-        //userDatabase.getAllUsers(users, newT);
+            public void run(ValuePair valuePair) {
+                Match match = valuePair.getMatch();
+                if (match.getUser2().getUsername().compareTo(userName) == 0) {
+                    final AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this)
+                            .setTitle(valuePair.getString()).setPositiveButton("Accept", new DialogInterface.OnClickListener() {
+                                @Override
+                                public void onClick(DialogInterface dialog, int which) {
 
-
-    }
-
-    public void checkOrAddUser(){
-        final DatabaseReference dr = firebaseDatabase.getReference("users/all");
-        dr.addListenerForSingleValueEvent(new ValueEventListener() {
-            @Override
-            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                boolean userFound = false;
-                User user = null;
-                for(DataSnapshot userSnapshot : dataSnapshot.getChildren()){
-                    user = userSnapshot.getValue(User.class);
-                    if(user.getUsername().compareTo(userName)==0){
-                        userFound = true;
-                        break;
-                    }
-                }
-
-                if(!userFound){
-                    new Thread(new Runnable() {
-                        @Override
-                        public void run() {
-                            getNextuserID();
-                        }
-                    }).start();
-
-                    new Thread(new Runnable() {
-                        @Override
-                        public void run() {
-                            synchronized (currentUser) {
-                                if (currentUser.getUserid() == 0) {
-                                    try {
-                                        currentUser.wait();
-                                    } catch (InterruptedException e) {
-
-                                    }
                                 }
-                            }
-                            currentUser.setUsername(userName);
-                            dr.child(userName).setValue(currentUser);
+                            }).setNegativeButton("Decline", new DialogInterface.OnClickListener() {
+                                @Override
+                                public void onClick(DialogInterface dialog, int which) {
 
-                            setUserActive();
-                        }
-                    }).start();
-                }else{
-                    currentUser.setUserid(user.getUserid());
-                    currentUser.setUsername(user.getUsername());
-                    setUserActive();
+                                }
+                            });
+                    builder.create().show();
                 }
             }
+        };
 
-            @Override
-            public void onCancelled(@NonNull DatabaseError databaseError) {}
-        });
-    }
-    
-    public void setUserActive(){
-        databaseReference.child("users").child("active").child(userName).setValue(currentUser);
+        matchmakingDatabase.setMatchListener(onRequestReceived);
+
+
+
     }
 
     public void setUserInactive(){
-        databaseReference.child("users").child("active").child(userName).removeValue();
+        userDatabase.setUserInactive(currentUser);
+
         if(ACTIVE_MATCHMAKING_STRING!=null && ACTIVE_MATCHMAKING_STRING.compareTo("")!=0){
             databaseReference.child("matchmaking").child(ACTIVE_MATCHMAKING_STRING).removeValue();
         }
-    }
-    
-    public void getNextuserID(){
-        DatabaseReference dr = firebaseDatabase.getReference("global_vars/player_ids");
-        dr.addListenerForSingleValueEvent(new ValueEventListener() {
-            @Override
-            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                int val = dataSnapshot.getValue(Integer.class);
-                userID = val;
-                synchronized (currentUser) {
-                    currentUser.setUserid(val);
-                    currentUser.notify();
-                }
-
-                System.out.println("Key: "+ userID +" : "+val);
-                databaseReference.child("global_vars").child("player_ids").setValue(userID+1);
-            }
-            @Override
-            public void onCancelled(@NonNull DatabaseError databaseError) {}
-        });
     }
 
     public void showDialog(ArrayList<User> temporaryList){
@@ -207,8 +152,6 @@ public class MainActivity extends AppCompatActivity {
         Toolbar title = v.findViewById(R.id.activeUsersToolbar);
         title.setTitle("Active Users");
         title.inflateMenu(R.menu.sample);
-
-
 
         final ListView list = (ListView)v.findViewById(R.id.availablePlayersList);
 
@@ -256,37 +199,11 @@ public class MainActivity extends AppCompatActivity {
         builder.create().show();
     }
 
-
-    public void findAvailablePlayers(){
-        DatabaseReference dr = firebaseDatabase.getReference("users/active");
-        dr.addListenerForSingleValueEvent(new ValueEventListener() {
-            @Override
-            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                synchronized (activeUsersList) {
-                    for (DataSnapshot userSnapshot : dataSnapshot.getChildren()) {
-                        User user = userSnapshot.getValue(User.class);
-                        activeUsersList.add(user);
-                        //System.out.println(user);
-                    }
-                    activeUsersList.notify();
-                }
-            }
-            @Override
-            public void onCancelled(@NonNull DatabaseError databaseError) {}
-        });
-
-        for(User u: activeUsersList){
-            System.out.println(u);
-        }
-    }
-
     @Override
     public void onBackPressed() {
         setUserInactive();
         super.onBackPressed();
     }
-
-
 
     @Override
     protected void onPause() {

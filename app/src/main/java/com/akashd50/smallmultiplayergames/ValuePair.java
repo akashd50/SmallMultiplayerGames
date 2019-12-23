@@ -6,6 +6,7 @@ public class ValuePair {
     private String string;
     private int integer;
     private User user;
+    private Match match;
     public ValuePair(){
 
     }
@@ -20,6 +21,14 @@ public class ValuePair {
 
     public void setUser(User user) {
         this.user = user;
+    }
+
+    public Match getMatch() {
+        return match;
+    }
+
+    public void setMatch(Match match) {
+        this.match = match;
     }
 
     public String getString() {
