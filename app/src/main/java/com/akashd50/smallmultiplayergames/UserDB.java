@@ -24,7 +24,7 @@ public class UserDB {
         activeDR = firebaseDatabase.getReference("users/active");
     }
 
-    public void search(final String toFind, final ValuePair toReturn, final Thread thread){
+   /* public void search(final String toFind, final ValuePair toReturn, final Thread thread){
         allDR.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
@@ -46,8 +46,32 @@ public class UserDB {
             public void onCancelled(@NonNull DatabaseError databaseError) {}
         });
     }
+*/
+    public void search(final String toFind, final Runner runner){
+        final ValuePair toReturn = new ValuePair();
+        allDR.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                User user = null;
+                for(DataSnapshot userSnapshot : dataSnapshot.getChildren()){
+                    user = userSnapshot.getValue(User.class);
+                    System.out.println("matching: "+ user.getUsername() + " <--> "+ toFind);
 
-    public void getAllUsers(final ArrayList<User> toReturn, final Thread thread){
+                    if(user.getUsername().compareTo(toFind)==0){
+                        System.out.println("_____>>>>> matched");
+                        toReturn.setUser(user);
+                        break;
+                    }
+                }
+                //run the provided action thread.
+                runner.run(toReturn);
+            }
+            @Override
+            public void onCancelled(@NonNull DatabaseError databaseError) {}
+        });
+    }
+
+    /*public void getAllUsers(final ArrayList<User> toReturn, final Thread thread){
         allDR.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
@@ -68,9 +92,32 @@ public class UserDB {
         for(User u: toReturn){
             System.out.println(u);
         }
+    }*/
+
+    public void getAllUsers(final Runner runner){
+        allDR.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                ArrayList<User> activeUsers = new ArrayList<>();
+                ValuePair toReturn = new ValuePair();
+
+                for (DataSnapshot userSnapshot : dataSnapshot.getChildren()) {
+                    User user = userSnapshot.getValue(User.class);
+
+
+                    activeUsers.add(user);
+                    //System.out.println(user);
+                }
+
+                toReturn.setList(activeUsers);
+                runner.run(toReturn);
+            }
+            @Override
+            public void onCancelled(@NonNull DatabaseError databaseError) {}
+        });
     }
 
-    public void getActiveUsers(final ArrayList<User> toReturn, final Thread thread){
+   /* public void getActiveUsers(final ArrayList<User> toReturn, final Thread thread){
         activeDR.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
@@ -91,10 +138,62 @@ public class UserDB {
         for(User u: toReturn){
             System.out.println(u);
         }
+    }*/
+
+    public void getActiveUsers(final Runner runner){
+        activeDR.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                ArrayList<User> activeUsers = new ArrayList<>();
+                ValuePair toReturn = new ValuePair();
+
+                for (DataSnapshot userSnapshot : dataSnapshot.getChildren()) {
+                    User user = userSnapshot.getValue(User.class);
+
+                    if(user!=null) {
+                        if (user.getUsername().compareTo(Services.getCurrentUser().getUsername()) != 0)
+                            activeUsers.add(user);
+                        //System.out.println(user);
+                    }
+                }
+                toReturn.setList(activeUsers);
+
+
+                runner.run(toReturn);
+            }
+            @Override
+            public void onCancelled(@NonNull DatabaseError databaseError) {}
+        });
+    }
+
+    public void setActiveUsersListener(final Runner runner){
+        activeDR.addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                ArrayList<User> activeUsers = new ArrayList<>();
+                ValuePair toReturn = new ValuePair();
+
+                for (DataSnapshot userSnapshot : dataSnapshot.getChildren()) {
+                    User user = userSnapshot.getValue(User.class);
+                    if(user!=null && user.getUsername()!=null) {
+                        if (user.getUsername().compareTo(Services.getCurrentUser().getUsername()) != 0)
+                            activeUsers.add(user);
+                        //System.out.println(user);
+                    }
+                }
+
+                toReturn.setList(activeUsers);
+
+                runner.run(toReturn);
+            }
+            @Override
+            public void onCancelled(@NonNull DatabaseError databaseError) {}
+        });
     }
 
 
-    public void addUser(final String username, final User toAdd, final Thread thread){
+
+    /*public void addUser(final String username, final User toAdd, final Thread thread){
         final ValuePair userSearch = new ValuePair();
         final ValuePair nextId = new ValuePair();
 
@@ -123,6 +222,36 @@ public class UserDB {
         });
         search(username, userSearch, checkIfAlreadyExists);
     }
+*/
+
+
+    public void addUser(final String username, final Runner runner){
+        final Runner addUser = new Runner() {
+            @Override
+            public void run(ValuePair valuePair) {
+                User toAdd = new User(username, valuePair.getInteger());
+                allDR.child(username).setValue(toAdd);
+
+                valuePair.setUser(toAdd);
+
+                runner.run(valuePair);
+            }
+        };
+
+
+        Runner checkIfAlreadyExists = new Runner() {
+            @Override
+            public void run(ValuePair valuePair) {
+                if(valuePair.getUser()==null){
+                    getNextuserID(addUser);
+                }else{
+                    runner.run(valuePair);
+                }
+            }
+        };
+        search(username, checkIfAlreadyExists);
+    }
+
 
     public void setUserActive(User u){
         activeDR.child(u.getUsername()).setValue(u);
@@ -132,7 +261,7 @@ public class UserDB {
         activeDR.child(u.getUsername()).removeValue();
     }
 
-    public ValuePair getNextuserID(final ValuePair valuePair, final Thread thread){
+   /* public ValuePair getNextuserID(final ValuePair valuePair, final Thread thread){
         final DatabaseReference dr = firebaseDatabase.getReference("global_vars/player_ids");
         dr.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
@@ -148,5 +277,26 @@ public class UserDB {
             public void onCancelled(@NonNull DatabaseError databaseError) {}
         });
         return valuePair;
+    }*/
+
+
+    public void getNextuserID(final Runner runner){
+
+        final DatabaseReference dr = firebaseDatabase.getReference("global_vars/player_ids");
+        dr.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                ValuePair toReturn = new ValuePair();
+
+                int val = dataSnapshot.getValue(Integer.class);
+                toReturn.setInteger(val);
+                dr.setValue(val+1);
+
+                //run the passed thread
+                runner.run(toReturn);
+            }
+            @Override
+            public void onCancelled(@NonNull DatabaseError databaseError) {}
+        });
     }
 }

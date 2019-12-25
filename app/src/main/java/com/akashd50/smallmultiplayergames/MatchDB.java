@@ -1,6 +1,7 @@
 package com.akashd50.smallmultiplayergames;
 
 import android.content.ContentValues;
+import android.renderscript.Sampler;
 
 import androidx.annotation.NonNull;
 
@@ -12,6 +13,7 @@ import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 
 public class MatchDB {
     private static String USER = "user";
@@ -20,65 +22,77 @@ public class MatchDB {
     private FirebaseDatabase firebaseDatabase;
     private DatabaseReference matchmaking, v2;
 
+    private HashMap<String, ValueEventListener> listeners;
+    private HashMap<String, DatabaseReference> databaseReferences;
+
     public MatchDB(FirebaseDatabase fd){
         this.firebaseDatabase = fd;
         matchmaking = firebaseDatabase.getReference("matchmaking");
         v2 = firebaseDatabase.getReference("users/active");
 
+        listeners = new HashMap<>();
+        databaseReferences = new HashMap<>();
     }
 
-    public void search(final String toFind, final ValuePair toReturn, final Thread thread){
+    public void search(final String toFind, final Runner runner){
         matchmaking.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                User user = null;
-                for(DataSnapshot userSnapshot : dataSnapshot.getChildren()){
-                    user = userSnapshot.getValue(User.class);
-                    System.out.println("matching: "+ user.getUsername() + " <--> "+ toFind);
-                    if(user.getUsername().compareTo(toFind)==0){
-                        System.out.println("_____>>>>> matched");
-                        toReturn.setUser(user);
+                Match match = null;
+                ValuePair toReturn = new ValuePair();
 
-                        break;
+                for(DataSnapshot userSnapshot : dataSnapshot.getChildren()){
+                    match = userSnapshot.getValue(Match.class);
+
+                    if(match!=null){
+
+                        System.out.println("Match String (in search) -->>>> "+ match.getMatchKey() + " __ "+ toFind);
+
+                        if(match.getMatchKey().compareTo(toFind)==0) {
+                            System.out.println("_____>>>>> matched");
+                            toReturn.setMatch(match);
+                            break;
+                        }
                     }
                 }
                 //run the provided action thread.
-                thread.run();
+                runner.run(toReturn);
             }
             @Override
             public void onCancelled(@NonNull DatabaseError databaseError) {}
         });
     }
 
+    public void onRequestStateListener(String key, DatabaseReference dr, final Runner runner){
+        databaseReferences.put(key, dr);
 
-    public void addUser(final String username, final User toAdd, final Thread thread){
-        final ValuePair userSearch = new ValuePair();
-        final ValuePair nextId = new ValuePair();
-
-        final Thread addUser = new Thread(new Runnable() {
+        ValueEventListener vel = new ValueEventListener() {
             @Override
-            public void run() {
-                toAdd.setUsername(username);
-                toAdd.setUserid(nextId.getInteger());
-                matchmaking.child(username).setValue(toAdd);
-                thread.run();
-            }
-        });
-
-
-        Thread checkIfAlreadyExists = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                if(userSearch.getUser()==null){
-                    getNextuserID(nextId,addUser);
-                }else{
-                    toAdd.copy(userSearch.getUser());
-                    thread.run();
+            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                Match match = dataSnapshot.getValue(Match.class);
+                if(match!=null && match.getUser1()!=null && match.getUser2()!=null) {
+                    ValuePair vp = new ValuePair();
+                    vp.setMatch(match);
+                    runner.run(vp);
                 }
-                //System.out.println("-----------------------------------------------------> "+users);
             }
-        });
-        search(username, userSearch, checkIfAlreadyExists);
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError databaseError) {
+
+            }
+        };
+
+        listeners.put(key,vel);
+        dr.addValueEventListener(vel);
+    }
+
+    public ValueEventListener getListener(String key){
+        return listeners.get(key);
+    }
+
+    public DatabaseReference getDBReference(String key){
+        return databaseReferences.get(key);
     }
 
     public void setMatchListener(final Runner runner){
@@ -111,6 +125,10 @@ public class MatchDB {
             public void onCancelled(DatabaseError databaseError) {
             }
         });
+    }
+
+    public void updateGameState(Match match){
+        matchmaking.child(match.getMatchKey()).setValue(match);
     }
 
     public ValuePair getNextuserID(final ValuePair valuePair, final Thread thread){

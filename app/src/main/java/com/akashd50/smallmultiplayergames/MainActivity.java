@@ -39,9 +39,7 @@ import java.util.Set;
 
 public class MainActivity extends AppCompatActivity {
     private Button tictactoeB;
-    private static int userID;
     private static String userName;
-    private ActionBar actionBar;
     private static User currentUser;
 
     private UserDB userDatabase;
@@ -53,14 +51,17 @@ public class MainActivity extends AppCompatActivity {
     private static DatabaseReference databaseReference;
     private static FirebaseDatabase firebaseDatabase;
 
-    private static String ACTIVE_MATCHMAKING_STRING;
+    private static AlertDialog activePlayersDialog, requestDialog;
+    private static Match currentMatch;
+
+    private static boolean startingGame;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        firebaseDatabase = FirebaseDatabase.getInstance();
+        firebaseDatabase = Services.getFirebaseDatabase();
         databaseReference = firebaseDatabase.getReference("");
 
         //
@@ -68,84 +69,78 @@ public class MainActivity extends AppCompatActivity {
         matchmakingDatabase = new MatchDB(firebaseDatabase);
 
         initializeDataBranches();
+        initializeActivePlayersDialog();
 
-        actionBar = getActionBar();
         currentUser = new User();
 
         userName = this.getIntent().getStringExtra("username");
-        //checkOrAddUser();
         //add the user to the database
-        currentUser = new User();
-        Thread newT = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                userDatabase.setUserActive(currentUser);
-            }
-        });
-        userDatabase.addUser(userName, currentUser, newT);
 
+        final Runner addUser = new Runner() {
+            @Override
+            public void run(ValuePair valuePair) {
+                currentUser = valuePair.getUser();
+                Services.setCurrentUser(currentUser);
+                userDatabase.setUserActive(valuePair.getUser());
+
+                setActiveUsersListener();
+            }
+        };
+        userDatabase.addUser(userName,addUser);
 
         activeUsersList = new ArrayList<>();
         tictactoeB = findViewById(R.id.run_sim);
+
+        //---------------New methods (Runner) ---------------------------------------
         tictactoeB.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 if (v.getId() == R.id.run_sim) {
-                    activeUsersList = new ArrayList<>();
-                    Thread newT = new Thread(new Runnable() {
-                        @Override
-                        public void run() {
-                            activeUserListAdapter.notifyDataSetChanged();
-                        }
-                    });
-                    userDatabase.getActiveUsers(activeUsersList, newT);
-
-                    showDialog(activeUsersList);
+                    activePlayersDialog.show();
                 }
             }
         });
 
-
-
-        //--------------------------------------
-        final Runner onRequestReceived = new Runner() {
-            @Override
-            public void run(ValuePair valuePair) {
-                Match match = valuePair.getMatch();
-                if (match.getUser2().getUsername().compareTo(userName) == 0) {
-                    final AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this)
-                            .setTitle(valuePair.getString()).setPositiveButton("Accept", new DialogInterface.OnClickListener() {
-                                @Override
-                                public void onClick(DialogInterface dialog, int which) {
-
-                                }
-                            }).setNegativeButton("Decline", new DialogInterface.OnClickListener() {
-                                @Override
-                                public void onClick(DialogInterface dialog, int which) {
-
-                                }
-                            });
-                    builder.create().show();
-                }
-            }
-        };
-
-        matchmakingDatabase.setMatchListener(onRequestReceived);
-
-
-
+        initializeRequestDialog();
+        setMatchmakingListener();
     }
 
     public void setUserInactive(){
         userDatabase.setUserInactive(currentUser);
-
-        if(ACTIVE_MATCHMAKING_STRING!=null && ACTIVE_MATCHMAKING_STRING.compareTo("")!=0){
-            databaseReference.child("matchmaking").child(ACTIVE_MATCHMAKING_STRING).removeValue();
+        if(currentMatch!=null && currentMatch.getMatchKey()!=null && currentMatch.getMatchKey().compareTo("")!=0){
+            databaseReference.child("matchmaking").child(currentMatch.getMatchKey()).removeValue();
         }
     }
 
-    public void showDialog(ArrayList<User> temporaryList){
+    public void setActiveUsersListener(){
+        final Runner getActiveUsers = new Runner() {
+            @Override
+            public void run(ValuePair valuePair) {
+                activeUserListAdapter.clear();
+                activeUserListAdapter.addAll(valuePair.getList());
+                activeUserListAdapter.notifyDataSetChanged();
+            }
+        };
+        userDatabase.setActiveUsersListener(getActiveUsers);
+    }
 
+    public void setMatchmakingListener(){
+        final Runner onRequestReceived = new Runner() {
+            @Override
+            public void run(ValuePair valuePair) {
+                Match m = valuePair.getMatch();
+                if (m.getUser2().getUsername().compareTo(userName) == 0) {
+                    currentMatch = valuePair.getMatch();
+                    requestDialog.setTitle(valuePair.getString());
+                    requestDialog.show();
+                }
+            }
+        };
+        matchmakingDatabase.setMatchListener(onRequestReceived);
+    }
+
+    public void initializeActivePlayersDialog(){
+        ArrayList<User> temporaryList = new ArrayList<>();
         final LayoutInflater inflater = MainActivity.this.getLayoutInflater();
         View v = inflater.inflate(R.layout.matching_dialog, null);
 
@@ -163,26 +158,43 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 User selected = activeUserListAdapter.getItem(position);
-
                 //matchmaking
-                ACTIVE_MATCHMAKING_STRING = "match_"+currentUser.getUserid()+"_"+selected.getUserid();
-                databaseReference.child("matchmaking").child(ACTIVE_MATCHMAKING_STRING).setValue(new Match(currentUser,selected));
+                currentMatch = new Match(currentUser,selected);
+                databaseReference.child("matchmaking").child(currentMatch.getMatchKey()).setValue(currentMatch);
 
+                final Runner onRequestChange = new Runner() {
+                    @Override
+                    public void run(ValuePair valuePair) {
+                        if(valuePair.getMatch().isAccepted()) {
+                            matchmakingDatabase.getDBReference("requestSent").removeEventListener(matchmakingDatabase.getListener("requestSent"));
 
+                            startingGame = true;
+
+                            Intent i = new Intent(MainActivity.this, TicTacToeActivity.class);
+                            i.putExtra("match", currentMatch.getMatchKey());
+                            startActivity(i);
+                        }
+                    }
+                };
+                matchmakingDatabase.onRequestStateListener("requestSent",databaseReference.child("matchmaking").child(currentMatch.getMatchKey()), onRequestChange);
             }
         });
 
         title.setOnMenuItemClickListener(new Toolbar.OnMenuItemClickListener() {
             @Override
             public boolean onMenuItemClick(MenuItem item) {
-                //System.out.println("Refreshed....");
                 if(item.getItemId()==R.id.refresh){
-                    System.out.println("Refreshed....");
-                    ArrayList<User> temp = new ArrayList<>(activeUsersList);
 
-                    activeUserListAdapter.clear();
-                    activeUserListAdapter.addAll(temp);
-                    activeUserListAdapter.notifyDataSetChanged();
+                    //on refresh retrieve the values from DB again
+                     final Runner getActiveUsers = new Runner() {
+                        @Override
+                        public void run(ValuePair valuePair) {
+                            activeUserListAdapter.clear();
+                            activeUserListAdapter.addAll(valuePair.getList());
+                            activeUserListAdapter.notifyDataSetChanged();
+                        }
+                    };
+                    userDatabase.getActiveUsers(getActiveUsers);
                 }
                 return true;
             }
@@ -196,7 +208,31 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        builder.create().show();
+        activePlayersDialog = builder.create();
+    }
+
+    public void initializeRequestDialog(){
+        final AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this)
+                .setTitle("").setPositiveButton("Accept", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        currentMatch.setAccepted(true);
+                        matchmakingDatabase.updateGameState(currentMatch);
+
+                        //request accepted
+                        startingGame = true;
+
+                        Intent i = new Intent(MainActivity.this, TicTacToeActivity.class);
+                        i.putExtra("match", currentMatch.getMatchKey());
+                        startActivity(i);
+                    }
+                }).setNegativeButton("Decline", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+
+                    }
+                });
+        requestDialog = builder.create();
     }
 
     @Override
@@ -217,15 +253,20 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onStop() {
-        setUserInactive();
+       if(!startingGame) setUserInactive();
         super.onStop();
     }
 
     public void initializeDataBranches(){
         User admin = new User("admin",0);
         databaseReference.child("users").child("active").child("admin").setValue(admin);
+
         databaseReference.child("users").child("all").child("admin").setValue(admin);
+
         String temp = "match_"+0+"_"+0;
-        databaseReference.child("matchmaking").child(temp).setValue(new Match(admin, admin));
+        Match match = new Match(admin,admin);
+        databaseReference.child("matchmaking").child(temp).setValue(match);
+
+
     }
 }

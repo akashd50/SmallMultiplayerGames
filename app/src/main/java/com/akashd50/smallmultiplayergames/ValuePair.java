@@ -2,11 +2,15 @@ package com.akashd50.smallmultiplayergames;
 
 import androidx.annotation.NonNull;
 
+import java.util.ArrayList;
+
 public class ValuePair {
     private String string;
     private int integer;
     private User user;
     private Match match;
+    private ArrayList list;
+
     public ValuePair(){
 
     }
@@ -29,6 +33,14 @@ public class ValuePair {
 
     public void setMatch(Match match) {
         this.match = match;
+    }
+
+    public ArrayList getList() {
+        return list;
+    }
+
+    public void setList(ArrayList list) {
+        this.list = list;
     }
 
     public String getString() {

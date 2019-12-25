@@ -26,6 +26,12 @@ public class User {
         this.userid = u.userid;
     }
 
+    public User copy(){
+        User toReturn = new User(username,userid);
+        //toReturn.currentMatch = this.currentMatch;
+        return toReturn;
+    }
+
     public void setUsername(String name){
         username = name;
     }

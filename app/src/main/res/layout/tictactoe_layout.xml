@@ -6,11 +6,26 @@
     android:layout_height="match_parent"
     tools:context=".MainActivity"
     >
+
+
+    <TextView
+        android:id="@+id/gameStatusView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text=""
+        android:textSize="40dp"
+        android:layout_centerHorizontal="true"
+        android:layout_above="@id/board"
+        android:layout_marginBottom="80dp"
+        />
+
 <LinearLayout
+    android:id="@+id/board"
     android:layout_width="wrap_content"
     android:layout_height="wrap_content"
     android:layout_centerInParent="true"
     android:orientation="vertical">
+
 
     <LinearLayout
         android:layout_width="wrap_content"
@@ -19,8 +34,8 @@
 
         <Button
             android:id="@+id/box0"
-            android:layout_width="50dp"
-            android:layout_height="50dp"
+            android:layout_width="60dp"
+            android:layout_height="60dp"
             android:background="@drawable/box_background"
             android:text=""
             android:layout_centerInParent="true">
@@ -28,8 +43,8 @@
 
         <Button
             android:id="@+id/box1"
-            android:layout_width="50dp"
-            android:layout_height="50dp"
+            android:layout_width="60dp"
+            android:layout_height="60dp"
             android:background="@drawable/box_background"
             android:text=" "
             android:layout_centerInParent="true">
@@ -37,8 +52,8 @@
 
         <Button
             android:id="@+id/box2"
-            android:layout_width="50dp"
-            android:layout_height="50dp"
+            android:layout_width="60dp"
+            android:layout_height="60dp"
             android:background="@drawable/box_background"
 
             android:text=" "
@@ -53,8 +68,8 @@
 
         <Button
             android:id="@+id/box3"
-            android:layout_width="50dp"
-            android:layout_height="50dp"
+            android:layout_width="60dp"
+            android:layout_height="60dp"
             android:background="@drawable/box_background"
             android:text=" "
             android:layout_centerInParent="true">
@@ -62,8 +77,8 @@
 
         <Button
             android:id="@+id/box4"
-            android:layout_width="50dp"
-            android:layout_height="50dp"
+            android:layout_width="60dp"
+            android:layout_height="60dp"
             android:background="@drawable/box_background"
 
             android:text=" "
@@ -72,8 +87,8 @@
 
         <Button
             android:id="@+id/box5"
-            android:layout_width="50dp"
-            android:layout_height="50dp"
+            android:layout_width="60dp"
+            android:layout_height="60dp"
             android:background="@drawable/box_background"
 
             android:text=" "
@@ -88,8 +103,8 @@
 
         <Button
             android:id="@+id/box6"
-            android:layout_width="50dp"
-            android:layout_height="50dp"
+            android:layout_width="60dp"
+            android:layout_height="60dp"
             android:background="@drawable/box_background"
 
             android:text=" "
@@ -98,8 +113,8 @@
 
         <Button
             android:id="@+id/box7"
-            android:layout_width="50dp"
-            android:layout_height="50dp"
+            android:layout_width="60dp"
+            android:layout_height="60dp"
             android:background="@drawable/box_background"
 
             android:text=" "
@@ -108,8 +123,8 @@
 
         <Button
             android:id="@+id/box8"
-            android:layout_width="50dp"
-            android:layout_height="50dp"
+            android:layout_width="60dp"
+            android:layout_height="60dp"
             android:background="@drawable/box_background"
 
             android:text=" "
@@ -119,6 +134,14 @@
 
 </LinearLayout>
 
-
+    <Button
+        android:id="@+id/rematchRequest"
+        android:layout_width="wrap_content"
+        android:layout_height="60dp"
+        android:background="@drawable/normal_button_background"
+        android:layout_below="@id/board"
+        android:layout_marginTop="100dp"
+        android:text="Rematch"
+        android:layout_centerHorizontal="true"/>
 
 </RelativeLayout>

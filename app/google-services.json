@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "102406200938",
+    "firebase_url": "https://smallmultiplayergames.firebaseio.com",
+    "project_id": "smallmultiplayergames",
+    "storage_bucket": "smallmultiplayergames.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:102406200938:android:5dbe5fc5db9ba260793413",
+        "android_client_info": {
+          "package_name": "com.akashd50.smallmultiplayergames"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "102406200938-qlsaoarmqbgdotlcjbnh2sehakvimnqh.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.akashd50.smallmultiplayergames",
+            "certificate_hash": "5c7352948d4a07bc19da1a728ee45ee83237b65e"
+          }
+        },
+        {
+          "client_id": "102406200938-kajer1tb330sf8s6enlofc81ith0d7ru.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDCQ0rA74HlT8XRodkL0xlPEQNA4mKzakE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "102406200938-kajer1tb330sf8s6enlofc81ith0d7ru.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
